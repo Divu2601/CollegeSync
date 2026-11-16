@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard &bull; CampusBook{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <div>
+            <h3 class="fw-bold mb-0 text-dark">Administrator Control Center</h3>
+            <p class="text-muted small mb-0">Review venue booking requests, manage resources, and prevent scheduling conflicts.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin.resources') }}" class="btn btn-light btn-sm border">
+                <i class="bi bi-building me-1"></i> Venues (21)
+            </a>
+            <a href="{{ url_for('admin.equipment') }}" class="btn btn-light btn-sm border">
+                <i class="bi bi-projector me-1"></i> Equipment
+            </a>
+            <a href="{{ url_for('admin.reports') }}" class="btn btn-light btn-sm border">
+                <i class="bi bi-graph-up me-1"></i> Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- Admin Navigation Tabs (Mobile Scrollable) -->
+    <div class="pill-tabs-scrollable mb-4">
+        <a href="{{ url_for('admin.dashboard') }}" class="pill-tab active">
+            <i class="bi bi-inbox me-1"></i> Pending Queue ({{ pending_count }})
+        </a>
+        <a href="{{ url_for('admin.bookings') }}" class="pill-tab">
+            <i class="bi bi-list-check me-1"></i> All Bookings
+        </a>
+        <a href="{{ url_for('admin.resources') }}" class="pill-tab">
+            <i class="bi bi-door-open me-1"></i> 21 Facilities
+        </a>
+        <a href="{{ url_for('admin.equipment') }}" class="pill-tab">
+            <i class="bi bi-tools me-1"></i> Equipment Inventory
+        </a>
+        <a href="{{ url_for('admin.maintenance') }}" class="pill-tab">
+            <i class="bi bi-cone-striped me-1"></i> Maintenance
+        </a>
+        <a href="{{ url_for('admin.users') }}" class="pill-tab">
+            <i class="bi bi-people me-1"></i> Users
+        </a>
+        <a href="{{ url_for('admin.reports') }}" class="pill-tab">
+            <i class="bi bi-pie-chart me-1"></i> Analytics
+        </a>
+        <a href="{{ url_for('admin.settings') }}" class="pill-tab">
+            <i class="bi bi-gear me-1"></i> Settings
+        </a>
+    </div>
+
+    <!-- 4 Clean Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="card-clean p-3 d-flex align-items-center gap-3">
+                <div class="venue-icon-box bg-warning-light text-warning">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Awaiting Action</div>
+                    <h3 class="fw-bold mb-0 text-dark">{{ pending_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card-clean p-3 d-flex align-items-center gap-3">
+                <div class="venue-icon-box bg-success-light text-success">
+                    <i class="bi bi-check2-circle"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Approved Events</div>
+                    <h3 class="fw-bold mb-0 text-dark">{{ approved_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card-clean p-3 d-flex align-items-center gap-3">
+                <div class="venue-icon-box bg-primary-light text-primary">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Venues Registered</div>
+                    <h3 class="fw-bold mb-0 text-dark">{{ total_resources }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card-clean p-3 d-flex align-items-center gap-3">
+                <div class="venue-icon-box bg-danger-light text-danger">
+                    <i class="bi bi-cone-striped"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Active Maintenance</div>
+                    <h3 class="fw-bold mb-0 text-dark">{{ active_maintenance }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Requests Queue -->
+    <div class="card-clean p-0 overflow-hidden mb-4">
+        <div class="p-3 bg-white border-bottom d-flex justify-content-between align-items-center">
+            <div class="fw-bold text-dark">
+                <i class="bi bi-exclamation-circle text-warning me-1"></i> Pending Requests Requiring Your Decision
+            </div>
+            <span class="badge bg-warning text-dark">{{ pending_bookings|length }} awaiting review</span>
+        </div>
+
+        {% if pending_bookings %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-secondary">
+                    <tr>
+                        <th class="ps-4">Event Details</th>
+                        <th>Requester</th>
+                        <th>Venues Requested</th>
+                        <th>Event Date & Time</th>
+                        <th class="text-end pe-4">Decision</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in pending_bookings %}
+                    <tr>
+                        <td class="ps-4 py-3">
+                            <div class="fw-bold text-dark">{{ b.event.title }}</div>
+                            <span class="badge bg-light text-dark border small">{{ b.event.category }}</span>
+                            <span class="small text-muted">&bull; {{ b.event.expected_attendance }} attendees</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ b.requester.name }}</div>
+                            <div class="small text-muted">{{ b.requester.role }}</div>
+                        </td>
+                        <td>
+                            {% for br in b.booking_resources %}
+                            <div class="small fw-semibold text-dark">
+                                &bull; {{ br.resource.name }}
+                            </div>
+                            {% endfor %}
+                            {% if b.equipment_requests %}
+                            <div class="small text-muted">
+                                <i class="bi bi-tools me-1"></i>{% for er in b.equipment_requests %}{{ er.quantity }}x {{ er.equipment.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="small">
+                            <div class="fw-semibold text-dark">{{ b.event.event_date | date_format }}</div>
+                            <div class="text-muted">{{ b.event.start_time | time_format }} – {{ b.event.end_time | time_format }}</div>
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{{ url_for('admin.booking_detail', booking_id=b.id) }}" class="btn btn-primary-custom btn-sm">
+                                Review & Decide &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-5 text-center text-muted">
+            <i class="bi bi-check-circle-fill display-5 text-success mb-2"></i>
+            <h5 class="fw-bold text-dark">You're all caught up!</h5>
+            <p class="small text-muted mb-0">No pending booking requests awaiting review.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

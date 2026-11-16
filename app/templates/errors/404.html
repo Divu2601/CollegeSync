@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}404 Not Found - CampusBook{% endblock %}
+{% block content %}
+<div class="container text-center py-5">
+    <div class="card p-5 mx-auto shadow-sm" style="max-width: 600px;">
+        <i class="bi bi-geo-alt-fill text-warning display-1 mb-3"></i>
+        <h2 class="fw-bold">Resource Not Found</h2>
+        <p class="text-muted mb-4">The page or booking record you requested could not be located on CampusBook.</p>
+        <div>
+            <a href="{{ url_for('main.index') }}" class="btn btn-primary px-4">Return to Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

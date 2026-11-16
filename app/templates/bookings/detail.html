@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Booking Details &bull; CampusBook{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('bookings.index') }}" class="text-decoration-none">My Bookings</a></li>
+            <li class="breadcrumb-item active">Booking #{{ booking.id }}</li>
+        </ol>
+    </nav>
+
+    <!-- Top Card: Status & Actions -->
+    <div class="card-clean p-4 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="mb-2">
+                    {% if booking.status == 'PENDING' %}
+                    <span class="chip-status chip-pending fs-7"><i class="bi bi-clock"></i> Pending Administrator Approval</span>
+                    {% elif booking.status == 'APPROVED' %}
+                    <span class="chip-status chip-approved fs-7"><i class="bi bi-check-circle"></i> Reservation Confirmed</span>
+                    {% elif booking.status == 'REJECTED' %}
+                    <span class="chip-status chip-rejected fs-7"><i class="bi bi-x-circle"></i> Request Declined</span>
+                    {% else %}
+                    <span class="chip-status chip-cancelled fs-7">{{ booking.status }}</span>
+                    {% endif %}
+                </div>
+                <h3 class="fw-bold text-dark mb-1">{{ booking.event.title }}</h3>
+                <div class="text-muted small">
+                    Submitted on {{ booking.submitted_at | datetime_format }} by <strong>{{ booking.requester.name }}</strong>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                {% if booking.is_cancellable() %}
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                    <i class="bi bi-x-circle me-1"></i> Cancel Request
+                </button>
+                {% endif %}
+
+                {% if current_user.is_admin() %}
+                <a href="{{ url_for('admin.booking_detail', booking_id=booking.id) }}" class="btn btn-dark btn-sm">
+                    <i class="bi bi-shield-check me-1"></i> Admin Review
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if booking.rejection_reason %}
+        <div class="alert alert-danger mt-3 mb-0 py-2 small">
+            <strong>Reason for Rejection:</strong> {{ booking.rejection_reason }}
+        </div>
+        {% endif %}
+
+        {% if booking.cancellation_reason %}
+        <div class="alert alert-secondary mt-3 mb-0 py-2 small">
+            <strong>Cancellation Note:</strong> {{ booking.cancellation_reason }}
+        </div>
+        {% endif %}
+
+        {% if booking.admin_notes and booking.is_approved() %}
+        <div class="alert alert-success mt-3 mb-0 py-2 small">
+            <strong>Administrator Note:</strong> {{ booking.admin_notes }}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row g-4">
+        <!-- Event Details Column -->
+        <div class="col-lg-7">
+            <div class="card-clean p-4 mb-4">
+                <h5 class="fw-bold text-dark mb-3">Event Information</h5>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Category</div>
+                        <div class="fw-semibold text-dark">{{ booking.event.category }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Expected Attendance</div>
+                        <div class="fw-semibold text-dark">{{ booking.event.expected_attendance }} persons</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Event Date</div>
+                        <div class="fw-semibold text-dark">{{ booking.event.event_date | date_format }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Scheduled Time</div>
+                        <div class="fw-semibold text-dark">{{ booking.event.start_time | time_format }} – {{ booking.event.end_time | time_format }}</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="small text-muted">Description</div>
+                    <p class="small text-secondary mb-0">{{ booking.event.description }}</p>
+                </div>
+
+                {% if booking.event.requirements %}
+                <div class="p-3 bg-light rounded">
+                    <div class="small text-muted fw-semibold">Special Requirements</div>
+                    <div class="small text-secondary">{{ booking.event.requirements }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Audit History Timeline -->
+            {% if booking.approval_history %}
+            <div class="card-clean p-4">
+                <h5 class="fw-bold text-dark mb-3">Decision History</h5>
+                <div class="timeline-clean">
+                    {% for h in booking.approval_history %}
+                    <div class="timeline-point">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-dark small">{{ h.action }}</span>
+                            <span class="small text-muted">{{ h.timestamp | datetime_format }}</span>
+                        </div>
+                        <div class="small text-muted">By {{ h.admin.name }}</div>
+                        {% if h.remarks %}
+                        <div class="small p-2 bg-light rounded border mt-1 text-secondary">
+                            {{ h.remarks }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Venues & Equipment Column -->
+        <div class="col-lg-5">
+            <!-- Reserved Venues -->
+            <div class="card-clean p-4 mb-4">
+                <h5 class="fw-bold text-dark mb-3">Reserved Venues</h5>
+                <div class="d-flex flex-column gap-2">
+                    {% for br in booking.booking_resources %}
+                    <div class="p-3 bg-light rounded">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <strong class="text-dark">{{ br.resource.name }}</strong>
+                            <span class="badge bg-light text-dark border small">{{ br.resource.category.name }}</span>
+                        </div>
+                        <div class="small text-muted mb-1"><i class="bi bi-geo-alt me-1"></i>{{ br.resource.location }}</div>
+                        <div class="small fw-semibold text-primary">
+                            <i class="bi bi-clock me-1"></i>{{ br.start_at.strftime('%I:%M %p') }} – {{ br.end_at.strftime('%I:%M %p') }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Equipment Items -->
+            <div class="card-clean p-4">
+                <h5 class="fw-bold text-dark mb-3">Requested Equipment</h5>
+                {% if booking.equipment_requests %}
+                <ul class="list-group list-group-flush">
+                    {% for er in booking.equipment_requests %}
+                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center bg-transparent">
+                        <span class="text-dark small fw-semibold">{{ er.equipment.name }}</span>
+                        <span class="badge bg-primary text-white">{{ er.quantity }} units</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="small text-muted mb-0">No equipment requested.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Simple Cancel Modal -->
+{% if booking.is_cancellable() %}
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ url_for('bookings.cancel', booking_id=booking.id) }}" class="modal-content">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger">Cancel Booking?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted">Are you sure you want to cancel this booking? This will immediately free up the reserved venue.</p>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Reason for Cancellation</label>
+                    <input type="text" name="reason" class="form-control" placeholder="e.g. Event postponed or speaker unavailable" required>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Keep Booking</button>
+                <button type="submit" class="btn btn-danger btn-sm">Yes, Cancel Booking</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

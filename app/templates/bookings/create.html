@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% block title %}Request a Venue Booking &bull; CampusBook{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('bookings.index') }}" class="text-decoration-none">My Bookings</a></li>
+            <li class="breadcrumb-item active">New Booking</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card-clean p-4 p-md-5">
+                <div class="mb-4 text-center">
+                    <h3 class="fw-bold text-dark mb-1">Request a Venue Booking</h3>
+                    <p class="text-muted small">Fill in the event details below. Your request will be reviewed by the administration.</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('bookings.create') }}" id="bookingForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Section 1: Event Details -->
+                    <div class="mb-4">
+                        <div class="fw-bold text-dark mb-3 pb-2 border-bottom">1. Event Details</div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-secondary">Event Title <span class="text-danger">*</span></label>
+                            <input type="text" name="title" class="form-control" placeholder="e.g. Annual Tech Symposium or Department Guest Lecture" required autofocus>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Event Category <span class="text-danger">*</span></label>
+                                <select name="category" class="form-select" required>
+                                    <option value="Academic" selected>Academic</option>
+                                    <option value="Technical">Technical</option>
+                                    <option value="Cultural">Cultural</option>
+                                    <option value="Sports">Sports</option>
+                                    <option value="Workshop">Workshop</option>
+                                    <option value="Seminar">Seminar</option>
+                                    <option value="Meeting">Meeting</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Expected Attendees <span class="text-danger">*</span></label>
+                                <input type="number" name="expected_attendance" id="attendanceInput" class="form-control" min="1" max="1000" value="50" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold text-secondary">Event Date <span class="text-danger">*</span></label>
+                                <input type="date" name="event_date" id="eventDate" class="form-control" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold text-secondary">Start Time <span class="text-danger">*</span></label>
+                                <input type="time" name="start_time" id="globalStartTime" class="form-control" value="09:00" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold text-secondary">End Time <span class="text-danger">*</span></label>
+                                <input type="time" name="end_time" id="globalEndTime" class="form-control" value="17:00" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Department</label>
+                                <select name="department_id" class="form-select">
+                                    <option value="">-- None / General --</option>
+                                    {% for d in departments %}
+                                    <option value="{{ d.id }}" {% if current_user.department_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Society</label>
+                                <select name="society_id" class="form-select">
+                                    <option value="">-- None / College Event --</option>
+                                    {% for s in societies %}
+                                    <option value="{{ s.id }}">{{ s.name }} ({{ s.category }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-secondary">Brief Description <span class="text-danger">*</span></label>
+                            <textarea name="description" class="form-control" rows="2" placeholder="Briefly describe the purpose of the event and agenda..." required></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Venues to Reserve -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                            <div class="fw-bold text-dark">2. Venues / Rooms to Reserve</div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="btnAddResource">
+                                <i class="bi bi-plus-lg me-1"></i> Add Another Venue
+                            </button>
+                        </div>
+
+                        <div id="resourceContainer">
+                            <!-- Primary Venue Row -->
+                            <div class="resource-row p-3 mb-2 bg-light rounded border">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold text-secondary">Select Venue <span class="text-danger">*</span></label>
+                                        <select name="resource_ids[]" class="form-select resource-select" required>
+                                            <option value="">-- Choose Venue / Room --</option>
+                                            {% for r in resources %}
+                                            <option value="{{ r.id }}" data-capacity="{{ r.capacity }}" {% if preselected_resource_id == r.id %}selected{% endif %}>
+                                                {{ r.name }} ({{ r.category.name }} &bull; {{ r.capacity }} seats)
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small fw-semibold text-secondary">From</label>
+                                        <input type="time" name="resource_start_times[]" class="form-control slot-start" value="09:00" required>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small fw-semibold text-secondary">To</label>
+                                        <input type="time" name="resource_end_times[]" class="form-control slot-end" value="17:00" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Equipment & Extras -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                            <div class="fw-bold text-dark">3. Equipment & Setup (Optional)</div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAddEquipment">
+                                <i class="bi bi-plus-lg me-1"></i> Add Equipment
+                            </button>
+                        </div>
+
+                        <div id="equipmentContainer" class="mb-3">
+                            <!-- Equipment rows added dynamically if needed -->
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-secondary">Any Special Requirements?</label>
+                            <input type="text" name="requirements" class="form-control" placeholder="e.g. Podium placement, seating arrangement, extra mic...">
+                        </div>
+                    </div>
+
+                    <!-- Friendly Notice -->
+                    <div class="p-3 bg-light rounded text-muted small mb-4 d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle text-primary fs-5"></i>
+                        <div>Venues operate between <strong>9:00 AM – 5:00 PM</strong>. Your request will be checked for scheduling conflicts and forwarded for administrator approval.</div>
+                    </div>
+
+                    <!-- Submit Actions -->
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('bookings.index') }}" class="btn btn-light border px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary-custom px-5">
+                            Submit Booking Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Template for Additional Venue Row -->
+<template id="resourceRowTemplate">
+    <div class="resource-row p-3 mb-2 bg-light rounded border">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-5 col-12">
+                <label class="form-label small fw-semibold text-secondary">Additional Venue</label>
+                <select name="resource_ids[]" class="form-select resource-select" required>
+                    <option value="">-- Choose Venue / Room --</option>
+                    {% for r in resources %}
+                    <option value="{{ r.id }}" data-capacity="{{ r.capacity }}">
+                        {{ r.name }} ({{ r.category.name }} &bull; {{ r.capacity }} seats)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 col-5">
+                <label class="form-label small fw-semibold text-secondary">From</label>
+                <input type="time" name="resource_start_times[]" class="form-control slot-start" value="09:00" required>
+            </div>
+            <div class="col-md-3 col-5">
+                <label class="form-label small fw-semibold text-secondary">To</label>
+                <input type="time" name="resource_end_times[]" class="form-control slot-end" value="17:00" required>
+            </div>
+            <div class="col-md-1 col-2 text-end pt-md-3 pt-4">
+                <button type="button" class="btn btn-light text-danger btn-sm border btn-remove-row" title="Remove">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Template for Equipment Row -->
+<template id="equipmentRowTemplate">
+    <div class="equipment-row p-3 mb-2 bg-light rounded border">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-7 col-12">
+                <label class="form-label small fw-semibold text-secondary">Equipment Item</label>
+                <select name="equipment_ids[]" class="form-select" required>
+                    <option value="">-- Select Item --</option>
+                    {% for eq in equipments %}
+                    <option value="{{ eq.id }}">
+                        {{ eq.name }} (Stock: {{ eq.total_quantity }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 col-8">
+                <label class="form-label small fw-semibold text-secondary">Qty</label>
+                <input type="number" name="equipment_quantities[]" class="form-control" min="1" value="1" required>
+            </div>
+            <div class="col-md-1 col-4 text-end pt-md-3 pt-4">
+                <button type="button" class="btn btn-light text-danger btn-sm border btn-remove-eq" title="Remove">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Default date is tomorrow
+    const eventDateInput = document.getElementById('eventDate');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    eventDateInput.value = tomorrow.toISOString().split('T')[0];
+    eventDateInput.min = new Date().toISOString().split('T')[0];
+
+    const globalStartTime = document.getElementById('globalStartTime');
+    const globalEndTime = document.getElementById('globalEndTime');
+    const resourceContainer = document.getElementById('resourceContainer');
+    const equipmentContainer = document.getElementById('equipmentContainer');
+    const btnAddResource = document.getElementById('btnAddResource');
+    const btnAddEquipment = document.getElementById('btnAddEquipment');
+
+    // Keep venue times in sync with event times
+    globalStartTime.addEventListener('change', function() {
+        document.querySelectorAll('.slot-start').forEach(input => input.value = globalStartTime.value);
+    });
+    globalEndTime.addEventListener('change', function() {
+        document.querySelectorAll('.slot-end').forEach(input => input.value = globalEndTime.value);
+    });
+
+    // Add extra venue
+    btnAddResource.addEventListener('click', function() {
+        const template = document.getElementById('resourceRowTemplate');
+        const clone = template.content.cloneNode(true);
+        const row = clone.querySelector('.resource-row');
+        row.querySelector('.slot-start').value = globalStartTime.value;
+        row.querySelector('.slot-end').value = globalEndTime.value;
+
+        row.querySelector('.btn-remove-row').addEventListener('click', () => row.remove());
+        resourceContainer.appendChild(row);
+    });
+
+    // Add equipment
+    btnAddEquipment.addEventListener('click', function() {
+        const template = document.getElementById('equipmentRowTemplate');
+        const clone = template.content.cloneNode(true);
+        const row = clone.querySelector('.equipment-row');
+
+        row.querySelector('.btn-remove-eq').addEventListener('click', () => row.remove());
+        equipmentContainer.appendChild(row);
+    });
+});
+</script>
+{% endblock %}

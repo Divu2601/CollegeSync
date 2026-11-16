@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}My Profile - CampusBook{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card p-4 shadow-sm border-0">
+                <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                    <div class="avatar-circle bg-primary text-white" style="width: 50px; height: 50px; font-size: 20px;">
+                        {{ current_user.name[:1] | upper }}
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0">{{ current_user.name }}</h4>
+                        <span class="badge bg-secondary">{{ current_user.role }}</span>
+                        {% if current_user.department %}
+                        <span class="badge bg-info text-dark">{{ current_user.department.name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('auth.profile') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Full Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ current_user.name }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Email Address</label>
+                        <input type="email" class="form-control bg-light" value="{{ current_user.email }}" readonly>
+                        <div class="form-text small">College email address cannot be changed.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Phone Number</label>
+                        <input type="tel" name="phone" class="form-control" value="{{ current_user.phone or '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Department</label>
+                        <select name="department_id" class="form-select">
+                            <option value="">-- None / General --</option>
+                            {% for d in departments %}
+                            <option value="{{ d.id }}" {% if current_user.department_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small">New Password (leave blank to keep current)</label>
+                        <input type="password" name="new_password" class="form-control" placeholder="Enter new password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                        Save Changes
+                    </button>
+                </form>
+
+                {% if current_user.society_memberships %}
+                <div class="mt-4 pt-3 border-top">
+                    <h6 class="fw-bold text-muted text-uppercase small mb-3">Society Affiliations</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for m in current_user.society_memberships %}
+                        <span class="badge bg-light text-dark border p-2">
+                            <i class="bi bi-people-fill text-primary me-1"></i> {{ m.society.name }} ({{ m.membership_role }})
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

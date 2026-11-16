@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Analytics & Reports &bull; Admin{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}" class="text-decoration-none">Admin Dashboard</a></li>
+            <li class="breadcrumb-item active">Analytics & Reports</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0 text-dark">Venue Utilisation & Event Reports</h3>
+            <p class="text-muted small mb-0">System metrics on booking status, venue utilization, and departmental distribution.</p>
+        </div>
+    </div>
+
+    <!-- 4 Clean Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="card-clean p-3">
+                <span class="small text-muted">Total Requests</span>
+                <h3 class="fw-bold text-dark mb-0">{{ total_bookings }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card-clean p-3">
+                <span class="small text-muted">Approved Events</span>
+                <h3 class="fw-bold text-success mb-0">{{ approved }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card-clean p-3">
+                <span class="small text-muted">Declined</span>
+                <h3 class="fw-bold text-danger mb-0">{{ rejected }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card-clean p-3">
+                <span class="small text-muted">Cancelled</span>
+                <h3 class="fw-bold text-secondary mb-0">{{ cancelled }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2 Clean Visual Charts -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card-clean p-4 h-100">
+                <h6 class="fw-bold text-dark mb-3">Booking Status Distribution</h6>
+                <div style="height: 260px; position: relative;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card-clean p-4 h-100">
+                <h6 class="fw-bold text-dark mb-3">Top Utilised College Venues</h6>
+                <div style="height: 260px; position: relative;">
+                    <canvas id="resourceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department and Society Stats Tables -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card-clean p-4 h-100">
+                <h6 class="fw-bold text-dark mb-3">Department-Wise Bookings</h6>
+                {% if dept_stats %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="small text-muted">
+                            <tr>
+                                <th>Department</th>
+                                <th class="text-end">Events</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dept_name, count in dept_stats %}
+                            <tr>
+                                <td class="small fw-semibold text-dark">{{ dept_name }}</td>
+                                <td class="text-end small"><span class="badge bg-light text-dark border">{{ count }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="small text-muted mb-0">No department bookings recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card-clean p-4 h-100">
+                <h6 class="fw-bold text-dark mb-3">Society-Wise Bookings</h6>
+                {% if soc_stats %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="small text-muted">
+                            <tr>
+                                <th>Society Name</th>
+                                <th class="text-end">Events</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for soc_name, count in soc_stats %}
+                            <tr>
+                                <td class="small fw-semibold text-dark">{{ soc_name }}</td>
+                                <td class="text-end small"><span class="badge bg-light text-dark border">{{ count }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="small text-muted mb-0">No society bookings recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/reports/charts')
+        .then(res => res.json())
+        .then(data => {
+            // Status Doughnut Chart
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: data.status.labels,
+                    datasets: [{
+                        data: data.status.values,
+                        backgroundColor: ['#f59e0b', '#10b981', '#ef4444', '#64748b', '#0284c7']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // Resource Bar Chart
+            const ctxResource = document.getElementById('resourceChart').getContext('2d');
+            new Chart(ctxResource, {
+                type: 'bar',
+                data: {
+                    labels: data.resources.labels.length > 0 ? data.resources.labels : ['No Bookings Yet'],
+                    datasets: [{
+                        label: 'Approved Bookings',
+                        data: data.resources.values.length > 0 ? data.resources.values : [0],
+                        backgroundColor: '#1e40af',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            });
+        })
+        .catch(err => console.error('Error fetching analytics:', err));
+});
+</script>
+{% endblock %}

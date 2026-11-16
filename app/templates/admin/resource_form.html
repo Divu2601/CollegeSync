@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{% if resource %}Edit {{ resource.name }}{% else %}Add Infrastructure Resource{% endif %} - Admin Console{% endblock %}
+
+{% block content %}
+<div class="container py-2">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.resources') }}">Resources</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% if resource %}Edit Resource{% else %}New Resource{% endif %}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white p-4">
+                    <h4 class="fw-bold mb-0">
+                        <i class="bi bi-building-add me-2"></i>
+                        {% if resource %}Edit Infrastructure: {{ resource.name }}{% else %}Register New Infrastructure Resource{% endif %}
+                    </h4>
+                </div>
+                <form method="POST" class="card-body p-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label fw-semibold small">Resource / Venue Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" value="{{ resource.name if resource else '' }}" placeholder="e.g. New Seminar Hall" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold small">Category <span class="text-danger">*</span></label>
+                            <select name="category_id" class="form-select" required>
+                                {% for c in categories %}
+                                <option value="{{ c.id }}" {% if resource and resource.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Seating / Occupancy Capacity <span class="text-danger">*</span></label>
+                            <input type="number" name="capacity" class="form-control" min="1" value="{{ resource.capacity if resource else 50 }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Campus Location</label>
+                            <input type="text" name="location" class="form-control" value="{{ resource.location if resource else 'College Campus' }}" placeholder="e.g. Ground Floor, Admin Block">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Operating Hours: Start Time <span class="text-danger">*</span></label>
+                            <input type="time" name="operating_hours_start" class="form-control" value="{{ resource.operating_hours_start if resource else '09:00' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Operating Hours: End Time <span class="text-danger">*</span></label>
+                            <input type="time" name="operating_hours_end" class="form-control" value="{{ resource.operating_hours_end if resource else '17:00' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Operational Status</label>
+                            <select name="status" class="form-select">
+                                <option value="active" {% if not resource or resource.status == 'active' %}selected{% endif %}>Active (Available for booking)</option>
+                                <option value="maintenance" {% if resource and resource.status == 'maintenance' %}selected{% endif %}>Maintenance (Temporarily disabled)</option>
+                                <option value="inactive" {% if resource and resource.status == 'inactive' %}selected{% endif %}>Inactive (Retired)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Owning Department (Optional)</label>
+                            <select name="department_id" class="form-select">
+                                <option value="">-- None / General College Facility --</option>
+                                {% for d in departments %}
+                                <option value="{{ d.id }}" {% if resource and resource.department_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="booking_allowed" id="bookingAllowed" {% if not resource or resource.booking_allowed %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold small" for="bookingAllowed">Allow Requesters to book this resource</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="approval_required" id="approvalRequired" {% if not resource or resource.approval_required %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold small" for="approvalRequired">Require Administrator Approval for reservations</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">On-Site Equipment Available</label>
+                        <input type="text" name="equipment_available" class="form-control" value="{{ resource.equipment_available if resource else '' }}" placeholder="e.g. HD Projector, Wireless Microphones, Podium">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small">Special Instructions / Booking Policy</label>
+                        <textarea name="special_instructions" class="form-control" rows="2" placeholder="e.g. No food allowed inside, maintain seating layout...">{{ resource.special_instructions if resource else '' }}</textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('admin.resources') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-5 fw-semibold">Save Resource</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

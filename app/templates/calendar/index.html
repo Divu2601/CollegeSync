@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Live Schedule &bull; CampusBook{% endblock %}
+
+{% block extra_head %}
+<!-- FullCalendar CSS & JS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-2 py-md-3">
+    <!-- Responsive Header with Filters -->
+    <div class="card-clean p-3 mb-3">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <h4 class="fw-bold text-dark mb-1 fs-5 fs-md-4">Venue Schedule & Availability</h4>
+                <div class="small text-muted">Real-time schedule across all 21 venues. Click any booking to view details.</div>
+            </div>
+
+            <!-- Action & Quick Legend -->
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="d-flex gap-2 small">
+                    <span class="d-flex align-items-center gap-1"><span class="badge px-2 py-1" style="background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;"><i class="bi bi-circle-fill me-1" style="font-size: 0.45rem;"></i> Confirmed</span></span>
+                    <span class="d-flex align-items-center gap-1"><span class="badge px-2 py-1" style="background: #fffbeb; color: #92400e; border: 1px solid #fde68a;"><i class="bi bi-circle-fill me-1" style="font-size: 0.45rem;"></i> Pending</span></span>
+                    <span class="d-flex align-items-center gap-1"><span class="badge px-2 py-1" style="background: #fef2f2; color: #991b1b; border: 1px solid #fecaca;"><i class="bi bi-circle-fill me-1" style="font-size: 0.45rem;"></i> Maintenance</span></span>
+                </div>
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('bookings.create') }}" class="btn btn-primary-custom btn-sm ms-auto ms-md-2">
+                    <i class="bi bi-plus-lg me-1"></i> Book Slot
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <hr class="my-3 opacity-25">
+
+        <!-- Filter Controls (Responsive Flex) -->
+        <div class="row g-2 align-items-center">
+            <div class="col-12 col-sm-6 col-md-4">
+                <label class="form-label small fw-semibold text-secondary mb-1">Filter by Category</label>
+                <select id="filterCategory" class="form-select form-select-sm">
+                    <option value="">All Categories (5)</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-5">
+                <label class="form-label small fw-semibold text-secondary mb-1">Filter by Venue</label>
+                <select id="filterResource" class="form-select form-select-sm">
+                    <option value="">All 21 Venues</option>
+                    {% for res in resources %}
+                    <option value="{{ res.id }}">{{ res.name }} ({{ res.category.name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-12 col-md-3 text-md-end pt-md-4">
+                <button type="button" id="btnResetFilters" class="btn btn-light btn-sm border w-100 w-md-auto">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Filters
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Container (Zero Inner Scrollbars) -->
+    <div class="card-clean p-2 p-md-4">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- Event Details Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark fs-5" id="modalTitle">Event Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-3" id="modalBody">
+                <!-- Injected via JavaScript -->
+            </div>
+            <div class="modal-footer border-0 pt-0" id="modalFooter">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+    const filterCategory = document.getElementById('filterCategory');
+    const filterResource = document.getElementById('filterResource');
+    const btnResetFilters = document.getElementById('btnResetFilters');
+    const eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+
+    const isMobile = window.innerWidth < 768;
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        height: 'auto',
+        contentHeight: 'auto',
+        expandRows: true,
+        dayMaxEvents: isMobile ? 2 : 3,
+        dayMaxEventRows: true,
+        eventDisplay: 'block',
+        slotMinTime: '08:00:00',
+        slotMaxTime: '18:00:00',
+        allDaySlot: false,
+        nowIndicator: true,
+        handleWindowResize: true,
+        eventTimeFormat: {
+            hour: 'numeric',
+            minute: '2-digit',
+            meridiem: 'short'
+        },
+        headerToolbar: isMobile ? {
+            left: 'prev,next',
+            center: 'title',
+            right: 'today dayGridMonth,timeGridDay'
+        } : {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        buttonText: {
+            today: 'Today',
+            dayGridMonth: 'Month',
+            timeGridWeek: 'Week',
+            timeGridDay: 'Day'
+        },
+        navLinks: true,
+        events: function(info, successCallback, failureCallback) {
+            let url = `/api/calendar/events?start=${info.startStr}&end=${info.endStr}`;
+            if (filterCategory.value) url += `&category_id=${filterCategory.value}`;
+            if (filterResource.value) url += `&resource_id=${filterResource.value}`;
+
+            fetch(url)
+                .then(r => r.json())
+                .then(data => successCallback(data))
+                .catch(err => failureCallback(err));
+        },
+        eventClick: function(info) {
+            const props = info.event.extendedProps;
+            document.getElementById('modalTitle').textContent = info.event.title;
+            
+            const startStr = info.event.start ? info.event.start.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A';
+            const endStr = info.event.end ? info.event.end.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A';
+
+            let statusBadge = '';
+            if (props.status === 'APPROVED') {
+                statusBadge = '<span class="chip-status chip-approved"><i class="bi bi-check-circle"></i> Confirmed Booking</span>';
+            } else if (props.status === 'PENDING') {
+                statusBadge = '<span class="chip-status chip-pending"><i class="bi bi-clock"></i> Pending Approval</span>';
+            } else if (props.status === 'MAINTENANCE') {
+                statusBadge = '<span class="chip-status chip-rejected"><i class="bi bi-tools"></i> Maintenance Blackout</span>';
+            }
+
+            let html = `
+                <div class="mb-3">${statusBadge}</div>
+                <div class="mb-2 small"><strong>Venue:</strong> ${props.resourceName || 'Venue'}</div>
+                <div class="mb-2 small"><strong>From:</strong> ${startStr}</div>
+                <div class="mb-2 small"><strong>To:</strong> ${endStr}</div>
+            `;
+
+            if (props.type === 'booking') {
+                html += `
+                    <div class="mb-2 small"><strong>Organiser:</strong> ${props.organiser || 'N/A'}</div>
+                    <div class="mb-2 small"><strong>Category:</strong> ${props.eventCategory || 'N/A'}</div>
+                `;
+                if (props.bookingId) {
+                    document.getElementById('modalFooter').innerHTML = `
+                        <a href="/bookings/${props.bookingId}" class="btn btn-primary-custom btn-sm">View Request</a>
+                        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Close</button>
+                    `;
+                }
+            } else {
+                document.getElementById('modalFooter').innerHTML = `
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Close</button>
+                `;
+            }
+
+            document.getElementById('modalBody').innerHTML = html;
+            eventModal.show();
+        }
+    });
+
+    calendar.render();
+
+    filterCategory.addEventListener('change', () => calendar.refetchEvents());
+    filterResource.addEventListener('change', () => calendar.refetchEvents());
+
+    btnResetFilters.addEventListener('click', () => {
+        filterCategory.value = '';
+        filterResource.value = '';
+        calendar.refetchEvents();
+    });
+
+    // Handle responsive resize gracefully
+    window.addEventListener('resize', function() {
+        const mobileNow = window.innerWidth < 768;
+        if (mobileNow !== isMobile) {
+            calendar.updateSize();
+        }
+    });
+});
+</script>
+{% endblock %}

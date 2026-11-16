@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}My Bookings &bull; CampusBook{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <div>
+            <h3 class="fw-bold mb-0 text-dark">My Booking Requests</h3>
+            <p class="text-muted small mb-0">Track the status of your requested college venues and equipment.</p>
+        </div>
+        <a href="{{ url_for('bookings.create') }}" class="btn btn-primary-custom btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> New Request
+        </a>
+    </div>
+
+    <!-- Status Filter Pills (Mobile Scrollable) -->
+    <div class="pill-tabs-scrollable mb-4">
+        <a href="{{ url_for('bookings.index') }}" class="pill-tab {% if not selected_status %}active{% endif %}">
+            All Bookings
+        </a>
+        <a href="{{ url_for('bookings.index', status='PENDING') }}" class="pill-tab {% if selected_status == 'PENDING' %}active{% endif %}">
+            Pending
+        </a>
+        <a href="{{ url_for('bookings.index', status='APPROVED') }}" class="pill-tab {% if selected_status == 'APPROVED' %}active{% endif %}">
+            Approved
+        </a>
+        <a href="{{ url_for('bookings.index', status='REJECTED') }}" class="pill-tab {% if selected_status == 'REJECTED' %}active{% endif %}">
+            Rejected
+        </a>
+        <a href="{{ url_for('bookings.index', status='CANCELLED') }}" class="pill-tab {% if selected_status == 'CANCELLED' %}active{% endif %}">
+            Cancelled
+        </a>
+    </div>
+
+    <!-- Bookings List -->
+    <div class="card-clean p-0 overflow-hidden">
+        {% if bookings %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-secondary">
+                    <tr>
+                        <th class="ps-4">Event & Category</th>
+                        <th>Venue(s) Reserved</th>
+                        <th>Date & Time</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bookings %}
+                    <tr>
+                        <td class="ps-4 py-3">
+                            <div class="fw-bold text-dark">{{ b.event.title }}</div>
+                            <span class="badge bg-light text-dark border small">{{ b.event.category }}</span>
+                        </td>
+                        <td>
+                            {% for br in b.booking_resources %}
+                            <div class="small fw-semibold text-dark">
+                                &bull; {{ br.resource.name }}
+                            </div>
+                            {% endfor %}
+                            {% if b.equipment_requests %}
+                            <div class="small text-muted mt-1">
+                                <i class="bi bi-tools me-1"></i>{% for er in b.equipment_requests %}{{ er.quantity }}x {{ er.equipment.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="small">
+                            <div class="fw-semibold text-dark">{{ b.event.event_date | date_format }}</div>
+                            <div class="text-muted">{{ b.event.start_time | time_format }} – {{ b.event.end_time | time_format }}</div>
+                        </td>
+                        <td>
+                            {% if b.status == 'PENDING' %}
+                            <span class="chip-status chip-pending"><i class="bi bi-clock"></i> Pending Review</span>
+                            {% elif b.status == 'APPROVED' %}
+                            <span class="chip-status chip-approved"><i class="bi bi-check-circle"></i> Confirmed</span>
+                            {% elif b.status == 'REJECTED' %}
+                            <span class="chip-status chip-rejected"><i class="bi bi-x-circle"></i> Declined</span>
+                            {% else %}
+                            <span class="chip-status chip-cancelled">{{ b.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{{ url_for('bookings.detail', booking_id=b.id) }}" class="btn btn-light btn-sm border">
+                                View Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox display-6 text-secondary mb-2"></i>
+            <h6 class="fw-bold text-dark mb-1">No bookings found</h6>
+            <p class="small mb-3">You don't have any bookings matching this filter.</p>
+            <a href="{{ url_for('bookings.create') }}" class="btn btn-primary-custom btn-sm">Create New Request</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

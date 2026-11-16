@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{% if equipment %}Edit Equipment{% else %}Add Equipment{% endif %} - Admin Console{% endblock %}
+
+{% block content %}
+<div class="container py-2">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.equipment') }}">Equipment</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% if equipment %}Edit{% else %}New{% endif %} Item</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white p-4">
+                    <h4 class="fw-bold mb-0">
+                        <i class="bi bi-tools me-2"></i>
+                        {% if equipment %}Edit Equipment: {{ equipment.name }}{% else %}Add New Equipment Item{% endif %}
+                    </h4>
+                </div>
+                <form method="POST" class="card-body p-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label fw-semibold small">Equipment Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" value="{{ equipment.name if equipment else '' }}" placeholder="e.g. Laser Projector 4K" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold small">Category <span class="text-danger">*</span></label>
+                            <select name="category" class="form-select" required>
+                                <option value="Projectors" {% if equipment and equipment.category == 'Projectors' %}selected{% endif %}>Projectors</option>
+                                <option value="Microphones and speakers" {% if equipment and equipment.category == 'Microphones and speakers' %}selected{% endif %}>Microphones and speakers</option>
+                                <option value="Laptops" {% if equipment and equipment.category == 'Laptops' %}selected{% endif %}>Laptops</option>
+                                <option value="Chairs and tables" {% if equipment and equipment.category == 'Chairs and tables' %}selected{% endif %}>Chairs and tables</option>
+                                <option value="AV Accessories" {% if equipment and equipment.category == 'AV Accessories' %}selected{% endif %}>AV Accessories</option>
+                                <option value="Sports Gear" {% if equipment and equipment.category == 'Sports Gear' %}selected{% endif %}>Sports Gear</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Total College Stock Quantity <span class="text-danger">*</span></label>
+                            <input type="number" name="total_quantity" class="form-control" min="0" value="{{ equipment.total_quantity if equipment else 1 }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Condition</label>
+                            <select name="condition" class="form-select">
+                                <option value="Excellent" {% if equipment and equipment.condition == 'Excellent' %}selected{% endif %}>Excellent</option>
+                                <option value="Good" {% if not equipment or equipment.condition == 'Good' %}selected{% endif %}>Good</option>
+                                <option value="Fair" {% if equipment and equipment.condition == 'Fair' %}selected{% endif %}>Fair</option>
+                                <option value="Needs Maintenance" {% if equipment and equipment.condition == 'Needs Maintenance' %}selected{% endif %}>Needs Maintenance</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Storage Location</label>
+                            <input type="text" name="storage_location" class="form-control" value="{{ equipment.storage_location if equipment else 'AV Room / Store' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Maintenance Status</label>
+                            <select name="maintenance_status" class="form-select">
+                                <option value="Active" {% if not equipment or equipment.maintenance_status == 'Active' %}selected{% endif %}>Active</option>
+                                <option value="Under Maintenance" {% if equipment and equipment.maintenance_status == 'Under Maintenance' %}selected{% endif %}>Under Maintenance</option>
+                                <option value="Retired" {% if equipment and equipment.maintenance_status == 'Retired' %}selected{% endif %}>Retired</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_available" id="isAvailable" {% if not equipment or equipment.is_available %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold small" for="isAvailable">Make available for event booking allocations</label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('admin.equipment') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-5 fw-semibold">Save Equipment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

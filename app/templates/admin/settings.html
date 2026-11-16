@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}System Settings - Admin Console{% endblock %}
+
+{% block content %}
+<div class="container py-2">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Policy Settings</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white p-4">
+                    <h4 class="fw-bold mb-0">
+                        <i class="bi bi-gear-fill me-2"></i>College Operational Policies & Settings
+                    </h4>
+                </div>
+                <form method="POST" action="{{ url_for('admin.settings') }}" class="card-body p-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-muted text-uppercase small mb-3">Booking Rules & Window Policies</h6>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Maximum Advance Booking Window (Days)</label>
+                            <input type="number" name="MAX_ADVANCE_BOOKING_DAYS" class="form-control" min="1" max="365" value="{{ settings | selectattr('key', 'equalto', 'MAX_ADVANCE_BOOKING_DAYS') | map(attribute='value') | first or '60' }}">
+                            <div class="form-text small">How many days in advance users are permitted to submit requests.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Allow Same-Day Bookings</label>
+                            {% set same_day = settings | selectattr('key', 'equalto', 'ALLOW_SAME_DAY_BOOKING') | map(attribute='value') | first or 'true' %}
+                            <select name="ALLOW_SAME_DAY_BOOKING" class="form-select">
+                                <option value="true" {% if same_day == 'true' %}selected{% endif %}>Yes - Permit bookings for today</option>
+                                <option value="false" {% if same_day == 'false' %}selected{% endif %}>No - Require at least 24 hours advance notice</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Pending Request Slot Policy</label>
+                            {% set hold_pending = settings | selectattr('key', 'equalto', 'HOLD_PENDING_REQUESTS') | map(attribute='value') | first or 'false' %}
+                            <select name="HOLD_PENDING_REQUESTS" class="form-select">
+                                <option value="false" {% if hold_pending == 'false' %}selected{% endif %}>Provisional Only: Resources remain open until Administrator explicitly approves</option>
+                                <option value="true" {% if hold_pending == 'true' %}selected{% endif %}>Hold Slot: Block subsequent requests while a pending request is awaiting review</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary px-4">Back</a>
+                        <button type="submit" class="btn btn-primary px-5 fw-semibold">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
